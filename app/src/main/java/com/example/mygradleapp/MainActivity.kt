@@ -1,47 +1,64 @@
 package com.example.mygradleapp
 
 import android.os.Bundle
-import androidx.activity.ComponentActivity
+import android.os.Handler
+import android.os.Looper
 import androidx.activity.compose.setContent
-import androidx.activity.enableEdgeToEdge
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.padding
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.ui.Modifier
-import androidx.compose.ui.tooling.preview.Preview
-import com.example.mygradleapp.ui.theme.MyGradleAppTheme
+import androidx.appcompat.app.AppCompatActivity
+import androidx.compose.material.MaterialTheme
+import androidx.compose.material.Surface
+import androidx.compose.material.Text
+import com.example.mygradleapp.databinding.ActivityMainBinding
 
-class MainActivity : ComponentActivity() {
+class MainActivity : AppCompatActivity() {
+    private lateinit var binding: ActivityMainBinding
+    private var sessionStart: Long = 0
+    private var totalTime: Long = 0
+    private val handler = Handler(Looper.getMainLooper())
+
+    private val updateRunnable = object : Runnable {
+        override fun run() {
+            val currentTime = System.currentTimeMillis()
+            val sessionTime = (currentTime - sessionStart) / 1000
+            binding.screenTimeText.text = "Screen Time: ${sessionTime}s"
+            handler.postDelayed(this, 1000)
+        }
+    }
+
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
-        enableEdgeToEdge()
         setContent {
-            MyGradleAppTheme {
-                Scaffold(modifier = Modifier.fillMaxSize()) { innerPadding ->
-                    Greeting(
-                        name = "World",
-                        modifier = Modifier.padding(innerPadding)
-                    )
+            MaterialTheme {
+                Surface {
+                    Text("Hello Compose")
                 }
             }
         }
-    }
-}
+        binding = ActivityMainBinding.inflate(layoutInflater)
+        setContentView(binding.root)
+        binding.screenTimeText.text = "App Opened"
 
-@Composable
-fun Greeting(name: String, modifier: Modifier = Modifier) {
-    Text(
-        text = "Hello $name!",
-        modifier = modifier
-    )
-}
-
-@Preview(showBackground = true)
-@Composable
-fun GreetingPreview() {
-    MyGradleAppTheme {
-        Greeting("world")
+        sessionStart = System.currentTimeMillis()
+        handler.post(updateRunnable)
     }
+
+    override fun onPause() {
+        super.onPause()
+        totalTime += System.currentTimeMillis() - sessionStart
+        handler.removeCallbacks(updateRunnable)
+    }
+
+    override fun onResume() {
+        super.onResume()
+        sessionStart = System.currentTimeMillis()
+        handler.post(updateRunnable)
+    }
+
+    override fun onDestroy() {
+        super.onDestroy()
+        totalTime += System.currentTimeMillis() - sessionStart
+        handler.removeCallbacks(updateRunnable)
+        // Log total screen time if needed
+    }
+
 }
